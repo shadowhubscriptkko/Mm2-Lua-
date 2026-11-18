@@ -1,0 +1,406 @@
+-- 1. تنظيف أي نسخة قديمة وإيقاف العمليات السابقة
+getgenv().AutoFarm = false
+getgenv().AutoReset = false
+getgenv().AntiAFK = false
+if game:GetService("CoreGui"):FindFirstChild("ShadowHubGUI") then
+    game:GetService("CoreGui").ShadowHubGUI:Destroy()
+end
+
+-- 2. استدعاء خدمات اللعبة الأساسية
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local localPlayer = Players.LocalPlayer
+
+-- متغيرات الإحصائيات والسرعة الآمنة
+local farmSpeed = 25
+local sessionCoins = 0
+
+-- 3. إنشاء الشاشة الرئيسية
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ShadowHubGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- 4. البانر الصغير العائم
+local MiniBanner = Instance.new("TextButton")
+MiniBanner.Name = "MiniBanner"
+MiniBanner.Size = UDim2.new(0, 130, 0, 36)
+MiniBanner.Position = UDim2.new(0.05, 0, 0.15, 0)
+MiniBanner.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MiniBanner.Text = "Shadow Hub"
+MiniBanner.TextColor3 = Color3.fromRGB(180, 140, 255)
+MiniBanner.Font = Enum.Font.GothamBold
+MiniBanner.TextSize = 14
+MiniBanner.Visible = false
+MiniBanner.Active = true
+MiniBanner.Draggable = true
+MiniBanner.Parent = ScreenGui
+
+local BannerCorner = Instance.new("UICorner")
+BannerCorner.CornerRadius = UDim.new(0, 10)
+BannerCorner.Parent = MiniBanner
+
+local BannerStroke = Instance.new("UIStroke")
+BannerStroke.Color = Color3.fromRGB(110, 60, 220)
+BannerStroke.Thickness = 1.5
+BannerStroke.Parent = MiniBanner
+
+-- 5. الإطار الرئيسي للقائمة
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 345)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -172)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(110, 60, 220)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- 6. شريط العنوان وزر الإخفاء
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -45, 0, 35)
+TitleLabel.Position = UDim2.new(0, 12, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Shadow Hub - MM2"
+TitleLabel.TextColor3 = Color3.fromRGB(180, 140, 255)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 15
+TitleLabel.Parent = MainFrame
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -35, 0, 3)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = MinBtn
+
+-- 7. شاشة عرض إحصائيات التجميع
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Size = UDim2.new(0.85, 0, 0, 36)
+StatsFrame.Position = UDim2.new(0.075, 0, 0.12, 0)
+StatsFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+StatsFrame.Parent = MainFrame
+
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 8)
+StatsCorner.Parent = StatsFrame
+
+local CoinsLabel = Instance.new("TextLabel")
+CoinsLabel.Size = UDim2.new(1, 0, 1, 0)
+CoinsLabel.BackgroundTransparency = 1
+CoinsLabel.Text = "العملات المجمعة: 0"
+CoinsLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+CoinsLabel.Font = Enum.Font.GothamBold
+CoinsLabel.TextSize = 14
+CoinsLabel.Parent = StatsFrame
+-- 8. الأزرار الوظيفية
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0.85, 0, 0, 38)
+ToggleBtn.Position = UDim2.new(0.075, 0, 0.25, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+ToggleBtn.Text = "تجميع العملات: متوقف"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamSemibold
+ToggleBtn.TextSize = 14
+ToggleBtn.Parent = MainFrame
+
+local Btn1Corner = Instance.new("UICorner")
+Btn1Corner.CornerRadius = UDim.new(0, 8)
+Btn1Corner.Parent = ToggleBtn
+
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(0.85, 0, 0, 38)
+ResetBtn.Position = UDim2.new(0.075, 0, 0.39, 0)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+ResetBtn.Text = "رست تلقائي (Auto Reset): متوقف"
+ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ResetBtn.Font = Enum.Font.GothamSemibold
+ResetBtn.TextSize = 13
+ResetBtn.Parent = MainFrame
+
+local BtnResetCorner = Instance.new("UICorner")
+BtnResetCorner.CornerRadius = UDim.new(0, 8)
+BtnResetCorner.Parent = ResetBtn
+
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Size = UDim2.new(0.85, 0, 0, 38)
+SpeedFrame.Position = UDim2.new(0.075, 0, 0.53, 0)
+SpeedFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+SpeedFrame.Parent = MainFrame
+
+local SpeedCorner = Instance.new("UICorner")
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+SpeedCorner.Parent = SpeedFrame
+
+local MinusSpeedBtn = Instance.new("TextButton")
+MinusSpeedBtn.Size = UDim2.new(0, 38, 1, 0)
+MinusSpeedBtn.BackgroundColor3 = Color3.fromRGB(48, 48, 65)
+MinusSpeedBtn.Text = "-"
+MinusSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusSpeedBtn.Font = Enum.Font.GothamBold
+MinusSpeedBtn.TextSize = 18
+MinusSpeedBtn.Parent = SpeedFrame
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, -76, 1, 0)
+SpeedLabel.Position = UDim2.new(0, 38, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "سرعة آمنة: 25 (الحد الأقصى)"
+SpeedLabel.TextColor3 = Color3.fromRGB(140, 255, 160)
+SpeedLabel.Font = Enum.Font.GothamSemibold
+SpeedLabel.TextSize = 12
+SpeedLabel.Parent = SpeedFrame
+
+local PlusSpeedBtn = Instance.new("TextButton")
+PlusSpeedBtn.Size = UDim2.new(0, 38, 1, 0)
+PlusSpeedBtn.Position = UDim2.new(1, -38, 0, 0)
+PlusSpeedBtn.BackgroundColor3 = Color3.fromRGB(48, 48, 65)
+PlusSpeedBtn.Text = "+"
+PlusSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusSpeedBtn.Font = Enum.Font.GothamBold
+PlusSpeedBtn.TextSize = 18
+PlusSpeedBtn.Parent = SpeedFrame
+
+local AfkBtn = Instance.new("TextButton")
+AfkBtn.Size = UDim2.new(0.85, 0, 0, 38)
+AfkBtn.Position = UDim2.new(0.075, 0, 0.67, 0)
+AfkBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+AfkBtn.Text = "منع الطرد (AFK): متوقف"
+AfkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AfkBtn.Font = Enum.Font.GothamSemibold
+AfkBtn.TextSize = 14
+AfkBtn.Parent = MainFrame
+
+local Btn3Corner = Instance.new("UICorner")
+Btn3Corner.CornerRadius = UDim.new(0, 8)
+Btn3Corner.Parent = AfkBtn
+
+local WalkSpeedBtn = Instance.new("TextButton")
+WalkSpeedBtn.Size = UDim2.new(0.85, 0, 0, 38)
+WalkSpeedBtn.Position = UDim2.new(0.075, 0, 0.81, 0)
+WalkSpeedBtn.BackgroundColor3 = Color3.fromRGB(100, 55, 200)
+WalkSpeedBtn.Text = "تفعيل سرعة المشي (24)"
+WalkSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+WalkSpeedBtn.Font = Enum.Font.GothamSemibold
+WalkSpeedBtn.TextSize = 14
+WalkSpeedBtn.Parent = MainFrame
+
+local Btn4Corner = Instance.new("UICorner")
+Btn4Corner.CornerRadius = UDim.new(0, 8)
+Btn4Corner.Parent = WalkSpeedBtn
+-- 9. قسم الوظائف المتطورة
+local currentBeam, att0, att1
+local function drawLineToCoin(targetCoin)
+    if currentBeam then currentBeam:Destroy() end
+    if att0 then att0:Destroy() end
+    if att1 then att1:Destroy() end
+    
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and targetCoin and targetCoin.Parent then
+        att0 = Instance.new("Attachment", char.HumanoidRootPart)
+        att1 = Instance.new("Attachment", targetCoin)
+        
+        currentBeam = Instance.new("Beam")
+        currentBeam.Attachment0 = att0
+        currentBeam.Attachment1 = att1
+        currentBeam.Color = ColorSequence.new(Color3.fromRGB(160, 80, 255))
+        currentBeam.Width0 = 0.25
+        currentBeam.Width1 = 0.25
+        currentBeam.FaceCamera = true
+        currentBeam.Parent = char.HumanoidRootPart
+    end
+end
+
+local function clearLine()
+    if currentBeam then currentBeam:Destroy() currentBeam = nil end
+    if att0 then att0:Destroy() att0 = nil end
+    if att1 then att1:Destroy() att1 = nil end
+end
+
+local function getNearestCoin()
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    local rootPos = char.HumanoidRootPart.Position
+    
+    local nearestCoin = nil
+    local shortestDist = math.huge
+    
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj.Name == "CoinContainer" then
+            for _, coin in pairs(obj:GetChildren()) do
+                if coin:IsA("BasePart") and coin:FindFirstChild("TouchInterest") then
+                    local dist = (rootPos - coin.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        nearestCoin = coin
+                    end
+                end
+            end
+        end
+    end
+    return nearestCoin
+end
+
+RunService.Stepped:Connect(function()
+    if getgenv().AutoFarm and localPlayer.Character then
+        for _, part in pairs(localPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+local function isBagFull()
+    local pGui = localPlayer:FindFirstChild("PlayerGui")
+    if not pGui then return false end
+    for _, v in pairs(pGui:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Visible then
+            local current, max = string.match(v.Text, "(%d+)%s*/%s*(%d+)")
+            if current and max and tonumber(max) >= 40 and tonumber(current) >= tonumber(max) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function moveToCoin(targetCoin)
+    local character = localPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") and targetCoin and targetCoin.Parent then
+        drawLineToCoin(targetCoin)
+        local rootPart = character.HumanoidRootPart
+        local distance = (rootPart.Position - targetCoin.Position).Magnitude
+        local duration = distance / farmSpeed
+        
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = targetCoin.CFrame})
+        tween:Play()
+        
+        while tween.PlaybackState == Enum.PlaybackState.Playing do
+            if not getgenv().AutoFarm or not targetCoin.Parent or not targetCoin:FindFirstChild("TouchInterest") then
+                tween:Cancel()
+                break
+            end
+            task.wait(0.05)
+        end
+        clearLine()
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.2) do
+        if getgenv().AutoFarm then
+            if getgenv().AutoReset and isBagFull() then
+                if localPlayer.Character then
+                    localPlayer.Character:BreakJoints()
+                    task.wait(4)
+                end
+            else
+                local targetCoin = getNearestCoin()
+                if targetCoin then
+                    moveToCoin(targetCoin)
+                    if not targetCoin:FindFirstChild("TouchInterest") or not targetCoin.Parent then
+                        sessionCoins = sessionCoins + 1
+                        CoinsLabel.Text = "العملات المجمعة: " .. tostring(sessionCoins)
+                    end
+                end
+            end
+        else
+            clearLine()
+        end
+    end
+end)
+
+localPlayer.Idled:Connect(function()
+    if getgenv().AntiAFK then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
+-- 10. ربط الأزرار والبانر بالوظائف
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MiniBanner.Visible = true
+end)
+
+MiniBanner.MouseButton1Click:Connect(function()
+    MiniBanner.Visible = false
+    MainFrame.Visible = true
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    getgenv().AutoFarm = not getgenv().AutoFarm
+    if getgenv().AutoFarm then
+        ToggleBtn.Text = "تجميع العملات: يعمل"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 180, 85)
+    else
+        ToggleBtn.Text = "تجميع العملات: متوقف"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+        clearLine()
+    end
+end)
+
+ResetBtn.MouseButton1Click:Connect(function()
+    getgenv().AutoReset = not getgenv().AutoReset
+    if getgenv().AutoReset then
+        ResetBtn.Text = "رست تلقائي (Auto Reset): يعمل"
+        ResetBtn.BackgroundColor3 = Color3.fromRGB(45, 180, 85)
+    else
+        ResetBtn.Text = "رست تلقائي (Auto Reset): متوقف"
+        ResetBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+    end
+end)
+
+MinusSpeedBtn.MouseButton1Click:Connect(function()
+    if farmSpeed > 15 then
+        farmSpeed = farmSpeed - 2
+        SpeedLabel.Text = "سرعة آمنة: " .. tostring(farmSpeed)
+    end
+end)
+
+PlusSpeedBtn.MouseButton1Click:Connect(function()
+    if farmSpeed < 25 then
+        farmSpeed = farmSpeed + 2
+        SpeedLabel.Text = "سرعة آمنة: " .. tostring(farmSpeed)
+    end
+end)
+
+AfkBtn.MouseButton1Click:Connect(function()
+    getgenv().AntiAFK = not getgenv().AntiAFK
+    if getgenv().AntiAFK then
+        AfkBtn.Text = "منع الطرد (AFK): يعمل"
+        AfkBtn.BackgroundColor3 = Color3.fromRGB(45, 180, 85)
+    else
+        AfkBtn.Text = "منع الطرد (AFK): متوقف"
+        AfkBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+    end
+end)
+
+WalkSpeedBtn.MouseButton1Click:Connect(function()
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+        localPlayer.Character.Humanoid.WalkSpeed = 24
+        WalkSpeedBtn.Text = "تم تفعيل السرعة الآمنة!"
+        task.wait(1.5)
+        WalkSpeedBtn.Text = "تفعيل سرعة المشي (24)"
+    end
+end)
